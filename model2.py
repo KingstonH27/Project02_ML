@@ -14,15 +14,17 @@ DATA = pd.read_csv("test.csv")
 DATA = DATA.sort_values("median_house_value")
 startCol = 1
 endCol = 2
-
-inputs = [[0,7,20,2]]
+#First input doesn't do anything, its the input compensating for weights list length(due to bias)
+#Inputs = [bias,x^1,x^2,x^3]
+inputs = [[0,7,1,1]]
 answers = [28,1.2,3]
 
-trainingSteps = 20
+trainingSteps = 100
 
-weights = [random.randint(-10, 10)/10] + [random.randint(-10, 10)/10 for _ in range(len(max(inputs, key=len))-1)]
+weights = [random.randint(-10, 10)/10] + [random.randint(-20, 20)/10 for _ in range(len(max(inputs, key=len))-1)]
 print(weights)
-learningRate = 0.5
+#Putting learning rate at 0.5 will result in exact answers when only trained on one set of inputs because it sets the bias to the target number
+learningRate = 0.001
 
 def model(ins):
 
