@@ -10,21 +10,40 @@ import sympy as sp
 
 RESET = '\033[0m'
 
-DATA = pd.read_csv("test.csv")
+
+
+DATA = pd.read_csv("housing.csv")
 DATA = DATA.sort_values("median_house_value")
-startCol = 1
-endCol = 2
+
+
+
+
+def getData(startColumn,endColumn,rows):
+   return DATA.iloc[:rows,[startColumn,endColumn]].values
+def getAnswers(column,rows):
+   return DATA.iloc[:rows,column].values
+
+
+answerCol = 9
+startCol = 4
+endCol = 5
+rowCount = 5
+inputs = [getData(startCol,endCol,rowCount)]
+answers = getAnswers(startCol,rowCount)
+
+#inputs = [[2,3,4,5]]
+#answers = [2,3,4,5]
 #First input doesn't do anything, its the input compensating for weights list length(due to bias)
 #Inputs = [bias,x^1,x^2,x^3]
-inputs = [[0,7,1,1]]
-answers = [28,1.2,3]
+#inputs = [[0,7,1,1]]
+#answers = [28,1.2,3]
 
 trainingSteps = 100
 
 weights = [random.randint(-10, 10)/10] + [random.randint(-20, 20)/10 for _ in range(len(max(inputs, key=len))-1)]
-print(weights)
+
 #Putting learning rate at 0.5 will result in exact answers when only trained on one set of inputs because it sets the bias to the target number
-learningRate = 0.001
+learningRate = 0.00000001
 
 def model(ins):
 
