@@ -15,72 +15,64 @@ DATA = DATA.sort_values("median_house_value")
 startCol = 1
 endCol = 2
 
-inputs = [[0.2,0],[1,0],[1,1]]
-answers = [10,1.2,3]
+inputs = [[0,7,20,2]]
+answers = [28,1.2,3]
 
-weights = [random.randint(-10, 10)/10 for _ in range(len(max(inputs, key=len)))]
+trainingSteps = 20
 
+weights = [random.randint(-10, 10)/10] + [random.randint(-10, 10)/10 for _ in range(len(max(inputs, key=len))-1)]
+print(weights)
+learningRate = 0.5
 
-biases = [random.randint(-10, 10)/10 for _ in range(len(inputs))]
+def model(ins):
 
-
-def model(ins,):
     y = 0
-    for inp in range(len(ins)):
-        y += biases[inp]
-        y += weights[inp]*ins[inp]
+    for term in range(len(weights)):
+        y += weights[term] * ins[term]**term
     return y
 
 
 
+def updateWeight(w,actual,inputSet):
+    b,w1,w2,w3= sp.symbols("b,w1,w2,w3")
+    ee, x1,x2, x3 = sp.symbols("ee, x1,x2,x3")
+    y = sp.symbols("y")
 
-#weight= sp.symbols("weight")
-#x, y = sp.symbols("x y")
+    weightSymbols = [b,w1,w2,w3]
+    inputSymbols = [ee,x1,x2,x3]
 
-#loss = (y-x)**2
-#differential = sp.diff(loss, weight)
+    prediction = b + w1 * x1 + w2* x2**2 + w3*x3**3
+    loss = (y - prediction) ** 2
 
-#for i in range(len(weightSet)):
-#    differential.subs({
-#        x : predicted,
-#        y : actual,
-#        weight : weights[weightSet][i]
-#    })
+    weightSet = {}
+    weightSet[y] = actual
 
+    for i in range(len(weightSymbols)):
+        weightSet[weightSymbols[i]] = weights[i]
+        weightSet[inputSymbols[i]] = inputs[inputSet][i]
 
-
-#weightSet = weights[]
-#dw1.subs({
-#    b:
-#})
-
-def updateWeight(w,actual,predicted,inputSet):
+    differential = sp.diff(loss, weightSymbols[w])
+    result = differential.subs(weightSet)
+    weights[w] -= result * learningRate
 
 
-    derivativeLoss = 2*(actual-predicted)
 
-    weights[w] = weights[w] + derivativeLoss * inputs[inputSet][w] * 0.1
-    biases[w] = biases[w] + derivativeLoss * 0.1
 
-    #2(1 - -0.4)
-    #2.8
-    #0.5 + 0.14 = 0.64 new weight
-    #1*0.64 = 0.64 new ouput
-    #original output -0.4
-    #d/dw l()
+
 
 print("\n--------------Initial Guesses----------------")
 #Initial Guess
+
 for i in range(len(inputs)):
     print("Intial Guess for input set",i,": ",model(inputs[i]))
 
-for x in range(200):
+for x in range(trainingSteps):
     inputSet = x % len(inputs)
     predicted = model(inputs[inputSet])
     actual = answers[inputSet]
 
     for w in range(len(weights)):
-        updateWeight(w,actual,predicted,inputSet)
+        updateWeight(w,actual,inputSet)
 
 print("\n--------------Trained Outputs----------------")
 error = 0
@@ -100,7 +92,7 @@ print("\nError: ", round(error/totalError * 100,2),"%")
 
 print("\n--------------Weights & Biases----------------")
 print(weights)
-print(biases)
+
 
 #plt.scatter(x,y)
 
