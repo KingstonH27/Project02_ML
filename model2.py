@@ -7,6 +7,7 @@ import pandas as pd
 import random
 import matplotlib.pyplot as plt
 import sympy as sp
+import time
 
 RESET = '\033[0m'
 
@@ -24,6 +25,7 @@ def getAnswers(inputColumn,rows):
    return DATA.iloc[:rows,inputColumn].values.tolist()
 
 
+
 answerCol = 9
 inputCol = 4
 rowCount = 5
@@ -31,24 +33,27 @@ rowCount = 5
 DATAinputs = getData(inputCol,rowCount)
 Dataanswers = getAnswers(inputCol,rowCount)
 
+finishThreshold = 0.5
+maxTrainingSteps = 2000
+learningRate = 0.0001
 
 #inputs = DATAinputs
 #answers = Dataanswers
 #print("hi")
 #print(inputs)
-inputs = [2]
-answers = [2]
+inputs = [2,3]
+answers = [2,6]
 #First input doesn't do anything, its the input compensating for weights list length(due to bias)
 #Inputs = [bias,x^1,x^2,x^3]
 #inputs = [[0,7,1,1]]
 #answers = [28,1.2,3]
 
-trainingSteps = 100
 
-weights = [random.randint(-10, 10)/10] + [random.randint(-20, 20)/10 for _ in range(3)]
+
+weights = [random.randint(-10, 10)/10] + [random.randint(-10, 10)/10 for _ in range(3)]
 
 #Putting learning rate at 0.5 will result in exact answers when only trained on one set of inputs because it sets the bias to the target number
-learningRate = 0.1
+
 
 def model(ins):
 
@@ -90,9 +95,63 @@ def updateWeights(actual,inputSet):
 
 
 
+def train():
+    step = 0
+    trainTime = time.perf_counter()
+
+    while step < maxTrainingSteps and not all(
+            abs(model(inputs[i]) - answers[i]) < finishThreshold
+            for i in range(len(inputs))
+    ):
+        inputSet = step % len(inputs)
+        updateWeights(answers[inputSet], inputSet)
+        step += 1
+
+    trainTime = time.perf_counter() - trainTime
+    return step, trainTime
 
 
+def findBestLearningRate():
+    global inputs, answers, learningRate
+    startingInputs = inputs.copy()
+    startingAnswers = answers.copy()
+    testRateInputs = []
+    testRateSteps = []
+    test = 1.0
+    for i in range(6):
+        testRateInputs.append(test)
+        sum = 0
+        for j in range(10):
+            inputs = startingInputs.copy()
+            answers = startingAnswers.copy()
+            learningRate = test
+            sum += train()[0]
+            print("Same rate test ", j)
+        print(sum / 10)
+        testRateSteps.append(sum / 10)
+        test /= 10
+        print("Tested rate ", test)
 
+    bestVal = testRateSteps[0]
+    best = 0
+    for i in range(len(testRateSteps)):
+        if testRateSteps[i] < bestVal:
+            bestVal = testRateSteps[i]
+            best = i
+
+    print("Best learning rate to minimize steps: ", testRateInputs[best])
+    for i in range(len(testRateSteps)):
+        print(testRateInputs[i], ", ", testRateSteps[i])
+
+    inputs = startingInputs.copy()
+    answers = startingAnswers.copy()
+
+    return testRateInputs[best]
+
+
+# ----- Main -----
+print("Finding best learning rate...")
+learningRate = findBestLearningRate()
 
 print("\n--------------Initial Guesses----------------")
 #Initial Guess
@@ -101,13 +160,10 @@ print("Weights: ", weights)
 for i in range(len(inputs)):
     print("Initial Guesses",inputs[i],": ",model(inputs[i]))
 
-for step in range(trainingSteps):
-    inputSet = step % len(inputs)
-    predicted = model(inputs[inputSet])
-    actual = answers[inputSet]
 
-    updateWeights(actual, inputSet)
-
+trainedMeta = train()
+trainingSteps = trainedMeta[0]
+trainingTime = trainedMeta[1]
 
 
 print("\n--------------Trained Outputs----------------")
@@ -117,13 +173,14 @@ print(f"{'Input':<12} | {'Predicted':<15} | {'Target':<15}")
 for i in range(len(inputs)):
     p = model(inputs[i])
     a = answers[i]
-    PREDICTEDCOLOR = '\033[92m' if abs(a-p)<0.5 else '\033[0m'
+    PREDICTEDCOLOR = '\033[92m' if abs(a-p)<finishThreshold else '\033[0m'
     print(f"{inputs[i]:<12} | {PREDICTEDCOLOR}{p:<15}{RESET}| {a:<15}")
 
-    error += abs(a-p)
+    error += round(abs(a-p),3)
     totalError += a
 
-print("\nError: ", round(error/totalError * 100,2),"%")
+print("\nError: ", round(round(error,4)/round(totalError,4) * 100,2),"%")
+print("Finished training in",trainingTime,"s in ",trainingSteps," steps, meeting the threshold of ",finishThreshold,".")
 
 
 print("\n--------------Weights & Biases----------------")
