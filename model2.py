@@ -34,7 +34,7 @@ DATAinputs = getData(inputCol,rowCount)
 Dataanswers = getAnswers(inputCol,rowCount)
 
 finishThreshold = 0.5
-maxTrainingSteps = 2000
+maxTrainingSteps = 100
 learningRate = 0.0001
 
 #inputs = DATAinputs
@@ -112,9 +112,11 @@ def train():
 
 
 def findBestLearningRate():
-    global inputs, answers, learningRate
+    findTimer = time.perf_counter()
+    global inputs, answers, weights, learningRate
     startingInputs = inputs.copy()
     startingAnswers = answers.copy()
+    startingWeights = weights.copy()
     testRateInputs = []
     testRateSteps = []
     test = 1.0
@@ -124,9 +126,11 @@ def findBestLearningRate():
         for j in range(10):
             inputs = startingInputs.copy()
             answers = startingAnswers.copy()
+            weights = startingWeights.copy()
             learningRate = test
-            sum += train()[0]
-            print("Same rate test ", j)
+            s, t = train()
+            sum += s
+            #print("Same rate test ", j)
         print(sum / 10)
         testRateSteps.append(sum / 10)
         test /= 10
@@ -139,13 +143,12 @@ def findBestLearningRate():
             bestVal = testRateSteps[i]
             best = i
 
-    print("Best learning rate to minimize steps: ", testRateInputs[best])
-    for i in range(len(testRateSteps)):
-        print(testRateInputs[i], ", ", testRateSteps[i])
-
+    print("\n**Best learning rate to minimize steps: ", testRateInputs[best])
     inputs = startingInputs.copy()
     answers = startingAnswers.copy()
-
+    weights = startingWeights.copy()
+    findTimer = time.perf_counter() - findTimer
+    print("Time to find best learning rate: ",findTimer)
     return testRateInputs[best]
 
 
@@ -155,6 +158,7 @@ learningRate = findBestLearningRate()
 
 print("\n--------------Initial Guesses----------------")
 #Initial Guess
+print("Learning Rate: ",learningRate)
 print("Weights: ", weights)
 
 for i in range(len(inputs)):
