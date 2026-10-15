@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import sympy as sp
 import time
 
+
+# General Variables
 RESET = '\033[0m'
-
-
 
 DATA = pd.read_csv("housing.csv")
 #DATA = DATA.sort_values("median_house_value")
@@ -24,6 +24,7 @@ def getData(inputColumn,rows):
 def getAnswers(answerColumn,rows):
    return DATA.iloc[:rows,answerColumn].values.tolist()
 
+#Main settings
 
 #first column in table is column 0
 answerCol = 8
@@ -35,7 +36,7 @@ Dataanswers = getAnswers(answerCol,rowCount)
 
 finishThreshold = 5000
 maxTrainingSteps = 2000
-learningRate = 0.47
+learningRate = 0.25
 
 optimizeLearningRate = False
 
@@ -46,18 +47,16 @@ minInput = min(inputs)
 maxInput = max(inputs)
 
 notNormalizedInputs = inputs.copy()
+# Normalization to -4 to 4
 inputs = [
     -4 + (x - minInput) * 8 / (maxInput - minInput)
     for x in inputs
 ]
-#print("hi")
-#print(inputs)
+
+#Manual inputs
 #inputs = [2,3,4,2]
 #answers = [1,3,4,4]
-#First input doesn't do anything, its the input compensating for weights list length(due to bias)
-#Inputs = [bias,x^1,x^2,x^3]
-#inputs = [[0,7,1,1]]
-#answers = [28,1.2,3]
+
 
 def getRandomWeights():
     return [random.randint(-10, 10) / 10] + [random.randint(-10, 10) / 10 for _ in range(3)]
@@ -66,7 +65,7 @@ weights = getRandomWeights()
 
 #Putting learning rate at 0.5 will result in exact answers when only trained on one set of inputs because it sets the bias to the target number
 
-
+#Calculates model output with determined weights and inputs
 def model(ins):
 
     y = 0
@@ -82,7 +81,7 @@ y = sp.symbols("y")
 
 weightSymbols = [b,w1,w2,w3]
 
-
+#Mirrors the model but symbolically so that the derivates can be taken
 prediction = b + w1/10 * x + w2/100* x**2 + w3/1000*x**3
 loss = (y - prediction) ** 2
 
@@ -90,6 +89,7 @@ derivatives = []
 for i in range(4):
     derivatives.append(sp.diff(loss, weightSymbols[i]))
 
+#Derivatives taken of loss with respect to each weight to determine which direction of changing the weight decreases the loss
 def updateWeights(actual,inputSet):
 
     weightSet = {
@@ -106,7 +106,7 @@ def updateWeights(actual,inputSet):
         weights[w] -= result * learningRate
 
 
-
+#Trains the data on different input and answer pairs from the dataset
 def train():
     step = 0
     trainTime = time.perf_counter()
@@ -122,7 +122,7 @@ def train():
     trainTime = time.perf_counter() - trainTime
     return step, trainTime
 
-
+#Tries many different learning rates and returns the one that learns in the fewest training steps
 def findBestLearningRate():
     findTimer = time.perf_counter()
     global inputs, answers, weights, learningRate
@@ -208,6 +208,7 @@ print("Finished training in",trainingTime,"s in ",trainingSteps," steps, meeting
 
 
 print("\n--------------Weights & Biases----------------")
+print("*First value is bias")
 print(weights)
 
 print("\n--------------Predict new value----------------")
