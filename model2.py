@@ -1,7 +1,7 @@
 #https://chatgpt.com/share/6abea1dc-3638-83e9-b2ca-0f186a86d448
 #https://chatgpt.com/share/6ac52c9a-7678-83e9-b8cc-8825801321dd
 #https://chatgpt.com/share/6ace8d81-2c30-83e9-be64-d4abaa1b0d79
-
+#https://chatgpt.com/share/6ad04906-1fac-83ea-af28-cfec5c8c5d80
 
 import pandas as pd
 import random
@@ -14,43 +14,55 @@ RESET = '\033[0m'
 
 
 DATA = pd.read_csv("housing.csv")
-DATA = DATA.sort_values("median_house_value")
+#DATA = DATA.sort_values("median_house_value")
 
 
 
 
 def getData(inputColumn,rows):
    return DATA.iloc[:rows,inputColumn].values.tolist()
-def getAnswers(inputColumn,rows):
-   return DATA.iloc[:rows,inputColumn].values.tolist()
+def getAnswers(answerColumn,rows):
+   return DATA.iloc[:rows,answerColumn].values.tolist()
 
 
-
-answerCol = 9
-inputCol = 4
-rowCount = 5
+#first column in table is column 0
+answerCol = 8
+inputCol = 5
+rowCount = 10
 
 DATAinputs = getData(inputCol,rowCount)
-Dataanswers = getAnswers(inputCol,rowCount)
+Dataanswers = getAnswers(answerCol,rowCount)
 
-finishThreshold = 0.5
-maxTrainingSteps = 100
-learningRate = 0.0001
+finishThreshold = 5000
+maxTrainingSteps = 2000
+learningRate = 0.47
 
-#inputs = DATAinputs
-#answers = Dataanswers
+optimizeLearningRate = False
+
+inputs = DATAinputs
+answers = Dataanswers
+
+minInput = min(inputs)
+maxInput = max(inputs)
+
+notNormalizedInputs = inputs.copy()
+inputs = [
+    -4 + (x - minInput) * 8 / (maxInput - minInput)
+    for x in inputs
+]
 #print("hi")
 #print(inputs)
-inputs = [2,3]
-answers = [2,6]
+#inputs = [2,3,4,2]
+#answers = [1,3,4,4]
 #First input doesn't do anything, its the input compensating for weights list length(due to bias)
 #Inputs = [bias,x^1,x^2,x^3]
 #inputs = [[0,7,1,1]]
 #answers = [28,1.2,3]
 
+def getRandomWeights():
+    return [random.randint(-10, 10) / 10] + [random.randint(-10, 10) / 10 for _ in range(3)]
 
-
-weights = [random.randint(-10, 10)/10] + [random.randint(-10, 10)/10 for _ in range(3)]
+weights = getRandomWeights()
 
 #Putting learning rate at 0.5 will result in exact answers when only trained on one set of inputs because it sets the bias to the target number
 
@@ -60,7 +72,7 @@ def model(ins):
     y = 0
     for term in range(4):
 
-        y += weights[term] * ins**term
+        y += weights[term]/10**term * ins**term
     return y
 
 
@@ -71,7 +83,7 @@ y = sp.symbols("y")
 weightSymbols = [b,w1,w2,w3]
 
 
-prediction = b + w1 * x + w2* x**2 + w3*x**3
+prediction = b + w1/10 * x + w2/100* x**2 + w3/1000*x**3
 loss = (y - prediction) ** 2
 
 derivatives = []
@@ -119,22 +131,29 @@ def findBestLearningRate():
     startingWeights = weights.copy()
     testRateInputs = []
     testRateSteps = []
-    test = 1.0
-    for i in range(6):
+
+    #Find Best Learning Rate Settings
+    numberToStartWith = 1
+    numberOfDivisions = 6
+    numberToDivideWith = 1.2
+    trials = 4
+
+    test = numberToStartWith
+    for i in range(numberOfDivisions):
         testRateInputs.append(test)
         sum = 0
-        for j in range(10):
+        for j in range(trials):
             inputs = startingInputs.copy()
             answers = startingAnswers.copy()
-            weights = startingWeights.copy()
+            weights = getRandomWeights()
             learningRate = test
             s, t = train()
             sum += s
             #print("Same rate test ", j)
-        print(sum / 10)
-        testRateSteps.append(sum / 10)
-        test /= 10
-        print("Tested rate ", test)
+        print("Average steps: ",sum / trials)
+        testRateSteps.append(sum / trials)
+        test /= numberToDivideWith
+        print("Tested rate: ", test)
 
     bestVal = testRateSteps[0]
     best = 0
@@ -153,8 +172,9 @@ def findBestLearningRate():
 
 
 # ----- Main -----
-print("Finding best learning rate...")
-learningRate = findBestLearningRate()
+if optimizeLearningRate:
+    print("Finding best learning rate...")
+    learningRate = findBestLearningRate()
 
 print("\n--------------Initial Guesses----------------")
 #Initial Guess
@@ -175,10 +195,10 @@ error = 0
 totalError = 0
 print(f"{'Input':<12} | {'Predicted':<15} | {'Target':<15}")
 for i in range(len(inputs)):
-    p = model(inputs[i])
-    a = answers[i]
+    p = round(model(inputs[i]),5)
+    a = round(answers[i],5)
     PREDICTEDCOLOR = '\033[92m' if abs(a-p)<finishThreshold else '\033[0m'
-    print(f"{inputs[i]:<12} | {PREDICTEDCOLOR}{p:<15}{RESET}| {a:<15}")
+    print(f"{round(notNormalizedInputs[i],5):<12} | {PREDICTEDCOLOR}{p:<15}{RESET}| {a:<15}")
 
     error += round(abs(a-p),3)
     totalError += a
@@ -190,7 +210,8 @@ print("Finished training in",trainingTime,"s in ",trainingSteps," steps, meeting
 print("\n--------------Weights & Biases----------------")
 print(weights)
 
-
-#plt.scatter(x,y)
-
-plt.show()
+print("\n--------------Predict new value----------------")
+while True:
+    v = float(input("Enter a value to predict output: "))
+    normalized = -4 + (v - minInput) * 8 / (maxInput - minInput)
+    print("Model output: ",model(normalized))
